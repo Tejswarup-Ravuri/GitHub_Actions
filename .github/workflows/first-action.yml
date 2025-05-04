@@ -8,5 +8,13 @@ jobs:
         run: echo "Hello first workflow!!"
       - name: print bye
         run: echo "Bye Bye!!"
+  second_job:
+    runs-on: ubuntu-latest
+    steps:
+      - name: print How are you
+        run: echo "How are you?"
+      - name: print iam gud
+        run: echo "iam doing gud"
+
   
         
