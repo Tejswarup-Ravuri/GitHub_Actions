@@ -12,6 +12,6 @@ jobs:
           java-version: '17'
           distribution: 'temurin'
       - name: compile_java_code
-        run: javac divide.java
+        run: javac Main.java
       - name: run_java_code
-        run:  java divide
+        run:  java Main
