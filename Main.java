@@ -3,7 +3,7 @@ public class Main
 {
 	public static void main(String[] args)
 	{
-	    int a=55;
+	    int a=55.00;
 	    int b=0;
 	    try
 	    {
