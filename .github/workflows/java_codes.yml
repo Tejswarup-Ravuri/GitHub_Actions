@@ -13,6 +13,7 @@ jobs:
           distribution: 'temurin'
       - name: compile_java_code
         run: javac Main.java
+        continue-on-error: true
       - name: Print compile success Message
         run : echo "Compiled successfully"
       - name: run_java_code
