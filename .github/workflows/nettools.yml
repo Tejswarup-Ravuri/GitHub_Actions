@@ -1,0 +1,23 @@
+name: Connectivity Check via Nettools
+on:
+ workflow_dispatch:
+   inputs:
+     environment:
+      description: Choose Environment
+      type: choice
+       - dev
+       - load
+       - prod
+      required: true
+     endpoint:
+      description: Choose endpoint
+      type: choice
+       - dev
+       - load
+       - prod
+      required: true
+     host:
+      description: Enter host
+      type: string
+      required: true
+     
