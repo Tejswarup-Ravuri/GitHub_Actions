@@ -26,4 +26,8 @@ on:
       description: Enter host
       type: string
       required: true
+     port:
+      description: Enter port (required for socket,ciphertest,certest)
+      type: string
+      required: false
      
