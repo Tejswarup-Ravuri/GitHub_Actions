@@ -1,5 +1,9 @@
 name: java_codes_test_workflow
-on: push
+on:
+  push:
+    paths-ignore:
+      - '.github/workflows/nettools.yml'
+
 jobs: 
   test:
     runs-on: ubuntu-latest
