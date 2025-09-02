@@ -5,6 +5,7 @@ on:
      environment:
       description: Choose Environment
       type: choice
+      options:
        - dev
        - load
        - prod
@@ -12,6 +13,7 @@ on:
      endpoint:
       description: Choose endpoint
       type: choice
+      options:
        - dev
        - load
        - prod
