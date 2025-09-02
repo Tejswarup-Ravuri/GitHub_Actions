@@ -14,9 +14,13 @@ on:
       description: Choose endpoint
       type: choice
       options:
-       - dev
-       - load
-       - prod
+       - ping
+       - socket
+       - traceroute
+       - dns
+       - curl
+       - ciphertest
+       - certest
       required: true
      host:
       description: Enter host
