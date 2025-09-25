@@ -15,6 +15,12 @@ jobs:
         run: echo "How are you?"
       - name: print iam gud
         run: echo "iam doing gud"
+  my-peanut-butter-job:
+    runs-on: ubuntu-latest
+    steps:
+     - name: Add mask
+       run:  echo "::add-mask::filthyfansofpeanutbutter.com" 
+ 
 
   
         
