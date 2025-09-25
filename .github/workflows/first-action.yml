@@ -20,6 +20,9 @@ jobs:
     steps:
      - name: Add mask
        run:  echo "::add-mask::filthyfansofpeanutbutter.com" 
+     - name: Use the domain
+       run: echo "Connecting to filthyfansofpeanutbutter.com"
+
  
 
   
