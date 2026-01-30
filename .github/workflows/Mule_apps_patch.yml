@@ -19,6 +19,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Printing How are you with env name
-        run: echo "Hi"
+        run: echo "Hi {{inputs.environment}}"
   
       
