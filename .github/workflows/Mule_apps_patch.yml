@@ -1,1 +1,22 @@
+name: MuleSoft Application Management
 
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Select environment
+        required: true
+        type: choice
+        options:
+          - dev
+          - test
+          - load
+          - stage
+          - prod
+
+jobs:
+  job-1:
+    runs-on: ubuntu-latest
+    echo: "Hi"
+  
+    
