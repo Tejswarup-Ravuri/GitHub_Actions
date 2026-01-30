@@ -15,8 +15,10 @@ on:
           - prod
 
 jobs:
-  job-1:
+  first_job:
     runs-on: ubuntu-latest
-    echo: "Hi"
+    steps:
+      - name: Printing How are you with env name
+        run: echo "Hi"
   
-    
+      
