@@ -28,3 +28,6 @@ jobs:
         run: |
               echo "Hi user, env_id is ${{vars.devUser}}"
               echo "${{github.event.repository.name}}"
+              echo "RepoName=Swarup_personal_repo">> $GITHUB_ENV
+      - name: printing from env var
+        run: echo "printing repo name from env var ${{env.RepoName}}"
