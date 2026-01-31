@@ -26,4 +26,4 @@ jobs:
         run: echo "Hi user, env_id is $ENV_ID and client id is $CLIENT_ID"
         env:
           ENV_ID: ${{ secrets.ENV_ID }}
-          CLIENT_ID: ${{ secrets.CLIENT_ID }}
+          CLIENT_ID: ${{ secrets.DEV_CLIENT_ID }}
