@@ -25,4 +25,6 @@ jobs:
         run: ls
 
       - name: Print environment secrets
-        run: echo "Hi user, env_id is ${{vars.devUser}}"
+        run: |
+              echo "Hi user, env_id is ${{vars.devUser}}"
+              echo "${{github.event.repository.name}}"
