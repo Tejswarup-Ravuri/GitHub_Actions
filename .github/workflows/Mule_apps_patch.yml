@@ -17,8 +17,13 @@ on:
 jobs:
   first_job:
     runs-on: ubuntu-latest
+    environment: ${{ github.event.inputs.environment }}   # 👈 tie job to selected environment
     steps:
-      - name: Printing How are you with env name
-        run: echo "Hi ${{inputs.environment}}"
-  
-      
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Print environment secrets
+        run: echo "Hi user, env_id is $ENV_ID and client id is $CLIENT_ID"
+        env:
+          ENV_ID: ${{ secrets.ENV_ID }}
+          CLIENT_ID: ${{ secrets.CLIENT_ID }}
