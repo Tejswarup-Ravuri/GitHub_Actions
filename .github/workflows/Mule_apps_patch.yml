@@ -21,5 +21,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Listing Files
+        run: ls
+
       - name: Print environment secrets
         run: echo "Hi user, env_id is ${{vars.devUser}}"
