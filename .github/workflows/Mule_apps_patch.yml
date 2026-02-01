@@ -30,8 +30,10 @@ jobs:
               echo "${{github.event.repository.name}}"
               echo "RepoName=Swarup_personal_repo">> $GITHUB_ENV
               echo "DevClient=${{secrets.DEV_CLIENT_ID}}" >> $GITHUB_ENV
+              
       - name: printing from env var
         run: |
          echo "printing repo name from env var ${{env.RepoName}}"
-         echo "Printing dev client id from en var ${{env.DevClient}}"
+         echo "Printing dev client id from en var ${{length(env.DevClient)}}"
+         
         
