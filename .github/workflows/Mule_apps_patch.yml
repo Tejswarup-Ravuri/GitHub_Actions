@@ -34,6 +34,6 @@ jobs:
       - name: printing from env var
         run: |
          echo "printing repo name from env var ${{env.RepoName}}"
-         echo "Printing dev client id from en var ${{length(env.DevClient)}}"
+         echo "Printing dev client id from en var ${#(env.DevClient)}"
          
         
