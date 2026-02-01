@@ -27,18 +27,14 @@ jobs:
 
       - name: Print environment secrets
         run: |
-          echo "Hi user, devUser var is ${{ vars.devUser }}"
-          echo "${{ github.event.repository.name }}"
-          echo "RepoName=Swarup_personal_repo" >> $GITHUB_ENV
-          echo "ClientId=${{ secrets.CLIENT_ID }}" >> $GITHUB_ENV
+          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" >> $GITHUB_ENV
+          echo "CLIENT_SECRET=${{secrets.CLIENT_SECRET}}">> $GITHUB_ENV
+          echo "ENV_ID=${{secrets.ENV_ID}}" >> $GITHUB_ENV
+          echo "ORG_ID =${{secrets.ORG_ID}}" >> $GITHUB_ENV
 
-     jobs:
-  manage-applications:
+  jobs:
+    manage-applications:
     runs-on: ubuntu-latest
-
-    environment:
-        name: ${{ inputs.environment }}
-
     env:
       ORG_ID: ${{ secrets.ORG_ID }}
       ENV_ID: ${{ secrets.ENV_ID }}
@@ -66,29 +62,29 @@ jobs:
         echo "API Response: $RESPONSE"
       
 
-    # - name: Get domains and apply action
-    #   id: get_domains
-    #   run: |
+    - name: Get domains and apply action
+      id: get_domains
+      run: |
 
-    #       DOMAINS=$(curl --location -X GET https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
-    #         -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-    #         -H "X-ANYPNT-ORG-ID: ${{ env.ORG_ID }}" \
-    #         -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" | jq -c 'map(.domain)')
-    #       echo "domains<<EOF" >> $GITHUB_OUTPUT
-    #       echo "$DOMAINS" >> $GITHUB_OUTPUT
-    #       echo "EOF" >> $GITHUB_OUTPUT
+          DOMAINS=$(curl --location -X GET https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
+            -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
+            -H "X-ANYPNT-ORG-ID: ${{ env.ORG_ID }}" \
+            -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" | jq -c 'map(.domain)')
+          echo "domains<<EOF" >> $GITHUB_OUTPUT
+          echo "$DOMAINS" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
 
-    #       for row in $(echo "${DOMAINS}" | jq -r '.[]'); do
-    #       MULEAPP=[\"${row}\"]
+          for row in $(echo "${DOMAINS}" | jq -r '.[]'); do
+          MULEAPP=[\"${row}\"]
 
-    #       echo "Applying ${{ github.event.inputs.action }} on ${row}"
-    #       sleep 5
-    #         curl -X PUT https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
-    #           -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-    #           -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" \
-    #           -H "Content-Type: application/json" \
-    #           -d "{ \"action\": \"${{ github.event.inputs.action }}\", \"domains\": ${MULEAPP}}"
-    #       done
+          echo "Applying ${{ github.event.inputs.action }} on ${row}"
+          sleep 5
+            curl -X PUT https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
+              -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
+              -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" \
+              -H "Content-Type: application/json" \
+              -d "{ \"action\": \"${{ github.event.inputs.action }}\", \"domains\": ${MULEAPP}}"
+          done
         
 
 
