@@ -12,13 +12,13 @@ on:
         description: Action to apply on apps
         required: true
         type: choice
-        options: [start, stop, restart]
+        options: [start, stop, restart,update]
 
 jobs:
   manage-applications:
     runs-on: ubuntu-latest
 
-    # ✅ This is what makes GitHub inject the Environment secrets for the chosen env
+    # This makes GitHub load Environment-level secrets for the chosen env
     environment: ${{ inputs.environment }}
 
     env:
@@ -28,107 +28,67 @@ jobs:
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Validate required secrets (safe)
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          for v in ORG_ID ENV_ID CLIENT_ID CLIENT_SECRET; do
-            if [ -z "${!v:-}" ]; then
-              echo "❌ Missing or empty: $v"
-              echo "Make sure it exists in GitHub Environment '${{ inputs.environment }}' secrets."
-              exit 1
-            fi
-          done
-
-          echo "✅ Secrets are present for '${{ inputs.environment }}' (values not printed)."
-
-      - name: Get auth token
+      - name: Get OAuth token
         id: get_token
         shell: bash
         run: |
           set -euo pipefail
 
-          TOKEN_RESPONSE=$(curl -sS --fail --location --request POST \
-            "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
-            --header "Content-Type: application/x-www-form-urlencoded" \
-            --data-urlencode "client_id=${CLIENT_ID}" \
-            --data-urlencode "client_secret=${CLIENT_SECRET}" \
-            --data-urlencode "grant_type=client_credentials")
+          AUTHORIZATION=$(
+            curl -sS --location -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
+              --header "Content-Type: application/x-www-form-urlencoded" \
+              --data-urlencode "client_id=${CLIENT_ID}" \
+              --data-urlencode "client_secret=${CLIENT_SECRET}" \
+              --data-urlencode "grant_type=client_credentials" \
+            | jq -r '.access_token'
+          )
 
-          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
-
-          if [ -z "$ACCESS_TOKEN" ]; then
-            echo "❌ Failed to obtain access token. Raw response:"
-            echo "$TOKEN_RESPONSE" | jq .
+          if [ -z "$AUTHORIZATION" ] || [ "$AUTHORIZATION" = "null" ]; then
+            echo "Failed to get access token"
             exit 1
           fi
 
-          echo "::add-mask::$ACCESS_TOKEN"
-          echo "auth_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
-          echo "✅ Token acquired."
+          echo "::add-mask::$AUTHORIZATION"
+          echo "auth_token=$AUTHORIZATION" >> "$GITHUB_OUTPUT"
 
-      - name: List CloudHub applications (domains)
-        id: list_apps
+      - name: Get apps list + apply action
         shell: bash
         run: |
           set -euo pipefail
 
-          APPS_RESPONSE=$(curl -sS --fail --location -X GET \
-            "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
-            -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-            -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
-            -H "X-ANYPNT-ENV-ID: ${ENV_ID}")
-
-          echo "$APPS_RESPONSE" > apps.json
-
-          DOMAINS=$(cat apps.json | jq -r '.[].domain')
-
-          if [ -z "$DOMAINS" ]; then
-            echo "❌ No domains returned (or unauthorized). Full response:"
-            cat apps.json | jq .
-            exit 1
-          fi
-
-          echo "✅ Domains found:"
-          echo "$DOMAINS"
-
-          # Save domains as multiline output
-          {
-            echo "domains<<EOF"
-            echo "$DOMAINS"
-            echo "EOF"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Apply action to each app domain
-        shell: bash
-        run: |
-          set -euo pipefail
-
+          TOKEN="${{ steps.get_token.outputs.auth_token }}"
           ACTION="${{ inputs.action }}"
-          echo "Applying action: $ACTION"
 
-          while IFS= read -r domain; do
-            [ -z "$domain" ] && continue
+          echo "Selected action: $ACTION"
 
-            echo "➡️  Applying '$ACTION' to: $domain"
+          # List applications (domains)
+          DOMAINS=$(
+            curl -sS --location -X GET "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
+              -H "Authorization: Bearer ${TOKEN}" \
+              -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
+              -H "X-ANYPNT-ENV-ID: ${ENV_ID}" \
+            | jq -r '.[].domain'
+          )
 
-            # Build payload expected by your current approach (action + domains)
-            # NOTE: Depending on CloudHub API behavior, endpoint/payload may differ.
-            PAYLOAD=$(jq -n --arg action "$ACTION" --arg domain "$domain" \
-              '{action: $action, domains: [$domain]}')
+          # -z returns true if the string length is zero.
+          if [ -z "$DOMAINS" ]; then
+            echo "No applications found (or missing permissions/headers)."
+            exit 1
+          fi
 
-            RESPONSE=$(curl -sS --fail --location -X PUT \
-              "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
-              -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
+          echo "Applications:"
+          echo "$DOMAINS" | sed 's/^/ - /'
+
+            curl --location -X PUT "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
+              -H "Authorization: Bearer ${TOKEN}" \
               -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
               -H "X-ANYPNT-ENV-ID: ${ENV_ID}" \
               -H "Content-Type: application/json" \
-              -d "$PAYLOAD")
+              -d "
+              {
+                \"action\":\"${ACTION}\",
+                \"domains\":[\"${APP}\"]}
+                "
 
-            echo "✅ Response for $domain: $RESPONSE"
-            sleep 2
-          done <<< "${{ steps.list_apps.outputs.domains }}"
+            echo "Done: $APP"
+          done <<< "$DOMAINS"
