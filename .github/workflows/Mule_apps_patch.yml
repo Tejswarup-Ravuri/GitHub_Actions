@@ -7,34 +7,20 @@ on:
         description: Select environment
         required: true
         type: choice
-        options:
-          - dev
-          - test
-          - load
-          - stage
-          - prod
+        options: [dev, test, load, stage, prod]
+      action:
+        description: Action to apply on apps
+        required: true
+        type: choice
+        options: [start, stop, restart]
 
 jobs:
-  first_job:
+  manage-applications:
     runs-on: ubuntu-latest
+
+    # ✅ This is what makes GitHub inject the Environment secrets for the chosen env
     environment: ${{ inputs.environment }}
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
 
-      - name: Listing Files
-        run: ls
-
-      - name: Print environment secrets
-        run: |
-          echo "CLIENT_ID=${{ secrets.CLIENT_ID }}" >> $GITHUB_ENV
-          echo "CLIENT_SECRET=${{secrets.CLIENT_SECRET}}">> $GITHUB_ENV
-          echo "ENV_ID=${{secrets.ENV_ID}}" >> $GITHUB_ENV
-          echo "ORG_ID =${{secrets.ORG_ID}}" >> $GITHUB_ENV
-
-  jobs:
-    manage-applications:
-    runs-on: ubuntu-latest
     env:
       ORG_ID: ${{ secrets.ORG_ID }}
       ENV_ID: ${{ secrets.ENV_ID }}
@@ -42,52 +28,107 @@ jobs:
       CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
 
     steps:
-    - name: Get auth token
-      id: get_token
-      run: |
-        AUTHORIZATION=$(curl --location --request POST https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token \
-          --header 'Content-Type: application/x-www-form-urlencoded' \
-          --data-urlencode "client_id=${{ env.CLIENT_ID }}" \
-          --data-urlencode "client_secret=${{ env.CLIENT_SECRET }}" \
-          --data-urlencode 'grant_type=client_credentials' | jq -r '.access_token')
-        echo "::add-mask::$AUTHORIZATION"
-        echo "auth_token=$AUTHORIZATION" >> $GITHUB_OUTPUT
+      - name: Checkout code
+        uses: actions/checkout@v4
 
-    - name: Debug API response
-      run: |
-        RESPONSE=$(curl --location -X GET https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
-          -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-          -H "X-ANYPNT-ORG-ID: ${{ env.ORG_ID }}" \
-          -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" )
-        echo "API Response: $RESPONSE"
-      
+      - name: Validate required secrets (safe)
+        shell: bash
+        run: |
+          set -euo pipefail
 
-    - name: Get domains and apply action
-      id: get_domains
-      run: |
-
-          DOMAINS=$(curl --location -X GET https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
-            -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-            -H "X-ANYPNT-ORG-ID: ${{ env.ORG_ID }}" \
-            -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" | jq -c 'map(.domain)')
-          echo "domains<<EOF" >> $GITHUB_OUTPUT
-          echo "$DOMAINS" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
-
-          for row in $(echo "${DOMAINS}" | jq -r '.[]'); do
-          MULEAPP=[\"${row}\"]
-
-          echo "Applying ${{ github.event.inputs.action }} on ${row}"
-          sleep 5
-            curl -X PUT https://anypoint.mulesoft.com/cloudhub/api/v2/applications/ \
-              -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
-              -H "X-ANYPNT-ENV-ID: ${{ env.ENV_ID }}" \
-              -H "Content-Type: application/json" \
-              -d "{ \"action\": \"${{ github.event.inputs.action }}\", \"domains\": ${MULEAPP}}"
+          for v in ORG_ID ENV_ID CLIENT_ID CLIENT_SECRET; do
+            if [ -z "${!v:-}" ]; then
+              echo "❌ Missing or empty: $v"
+              echo "Make sure it exists in GitHub Environment '${{ inputs.environment }}' secrets."
+              exit 1
+            fi
           done
-        
 
+          echo "✅ Secrets are present for '${{ inputs.environment }}' (values not printed)."
 
-    
-      
-        
+      - name: Get auth token
+        id: get_token
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          TOKEN_RESPONSE=$(curl -sS --fail --location --request POST \
+            "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
+            --header "Content-Type: application/x-www-form-urlencoded" \
+            --data-urlencode "client_id=${CLIENT_ID}" \
+            --data-urlencode "client_secret=${CLIENT_SECRET}" \
+            --data-urlencode "grant_type=client_credentials")
+
+          ACCESS_TOKEN=$(echo "$TOKEN_RESPONSE" | jq -r '.access_token // empty')
+
+          if [ -z "$ACCESS_TOKEN" ]; then
+            echo "❌ Failed to obtain access token. Raw response:"
+            echo "$TOKEN_RESPONSE" | jq .
+            exit 1
+          fi
+
+          echo "::add-mask::$ACCESS_TOKEN"
+          echo "auth_token=$ACCESS_TOKEN" >> "$GITHUB_OUTPUT"
+          echo "✅ Token acquired."
+
+      - name: List CloudHub applications (domains)
+        id: list_apps
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          APPS_RESPONSE=$(curl -sS --fail --location -X GET \
+            "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
+            -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
+            -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
+            -H "X-ANYPNT-ENV-ID: ${ENV_ID}")
+
+          echo "$APPS_RESPONSE" > apps.json
+
+          DOMAINS=$(cat apps.json | jq -r '.[].domain')
+
+          if [ -z "$DOMAINS" ]; then
+            echo "❌ No domains returned (or unauthorized). Full response:"
+            cat apps.json | jq .
+            exit 1
+          fi
+
+          echo "✅ Domains found:"
+          echo "$DOMAINS"
+
+          # Save domains as multiline output
+          {
+            echo "domains<<EOF"
+            echo "$DOMAINS"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Apply action to each app domain
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          ACTION="${{ inputs.action }}"
+          echo "Applying action: $ACTION"
+
+          while IFS= read -r domain; do
+            [ -z "$domain" ] && continue
+
+            echo "➡️  Applying '$ACTION' to: $domain"
+
+            # Build payload expected by your current approach (action + domains)
+            # NOTE: Depending on CloudHub API behavior, endpoint/payload may differ.
+            PAYLOAD=$(jq -n --arg action "$ACTION" --arg domain "$domain" \
+              '{action: $action, domains: [$domain]}')
+
+            RESPONSE=$(curl -sS --fail --location -X PUT \
+              "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
+              -H "Authorization: Bearer ${{ steps.get_token.outputs.auth_token }}" \
+              -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
+              -H "X-ANYPNT-ENV-ID: ${ENV_ID}" \
+              -H "Content-Type: application/json" \
+              -d "$PAYLOAD")
+
+            echo "✅ Response for $domain: $RESPONSE"
+            sleep 2
+          done <<< "${{ steps.list_apps.outputs.domains }}"
