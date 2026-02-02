@@ -3,7 +3,7 @@ name: MuleSoft Application Management
 on:
   workflow_dispatch:
     inputs:
-      Business Group:
+      BusinessGroup:
         description: Select environment
         required: true
         type: choice
@@ -23,77 +23,15 @@ jobs:
   manage-applications:
     runs-on: ubuntu-latest
 
-    # This makes GitHub load Environment-level secrets for the chosen env
-    environment: ${{ inputs.environment }}
+    # This makes GitHub load Environment-level secrets for the chosen bg & env
+    environment: ${{ inputs.BusinessGroup }}-${{inputs.environment}}
 
     env:
-      ORG_ID: ${{ secrets.ORG_ID }}
-      ENV_ID: ${{ secrets.ENV_ID }}
       CLIENT_ID: ${{ secrets.CLIENT_ID }}
-      CLIENT_SECRET: ${{ secrets.CLIENT_SECRET }}
 
     steps:
-      - name: Get OAuth token
-        id: get_token
-        shell: bash
-        run: |
-          set -euo pipefail
+    - name: Print len
+      run: |
+           echo "CLIENT_ID length: ${#CLIENT_ID}"
 
-          AUTHORIZATION=$(
-            curl -sS --location -X POST "https://anypoint.mulesoft.com/accounts/api/v2/oauth2/token" \
-              --header "Content-Type: application/x-www-form-urlencoded" \
-              --data-urlencode "client_id=${CLIENT_ID}" \
-              --data-urlencode "client_secret=${CLIENT_SECRET}" \
-              --data-urlencode "grant_type=client_credentials" \
-            | jq -r '.access_token'
-          )
-
-          if [ -z "$AUTHORIZATION" ] || [ "$AUTHORIZATION" = "null" ]; then
-            echo "Failed to get access token"
-            exit 1
-          fi
-
-          echo "::add-mask::$AUTHORIZATION"
-          echo "auth_token=$AUTHORIZATION" >> "$GITHUB_OUTPUT"
-
-      - name: Get apps list + apply action
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          TOKEN="${{ steps.get_token.outputs.auth_token }}"
-          ACTION="${{ inputs.action }}"
-
-          echo "Selected action: $ACTION"
-
-          # List applications (domains)
-          DOMAINS=$(
-            curl -sS --location -X GET "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
-              -H "Authorization: Bearer ${TOKEN}" \
-              -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
-              -H "X-ANYPNT-ENV-ID: ${ENV_ID}" \
-            | jq -r '.[].domain'
-          )
-
-          # -z returns true if the string length is zero.
-          if [ -z "$DOMAINS" ]; then
-            echo "No applications found (or missing permissions/headers)."
-            exit 1
-          fi
-
-          echo "Applications:"
-          echo "$DOMAINS" | sed 's/^/ - /'
-
-            curl --location -X PUT "https://anypoint.mulesoft.com/cloudhub/api/v2/applications" \
-              -H "Authorization: Bearer ${TOKEN}" \
-              -H "X-ANYPNT-ORG-ID: ${ORG_ID}" \
-              -H "X-ANYPNT-ENV-ID: ${ENV_ID}" \
-              -H "Content-Type: application/json" \
-              -d "
-              {
-                \"action\":\"${ACTION}\",
-                \"domains\":[\"${APP}\"]}
-                "
-
-            echo "Done: $APP"
-          done <<< "$DOMAINS"
+   
