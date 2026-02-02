@@ -7,7 +7,7 @@ on:
         description: Select environment
         required: true
         type: choice
-        options: [AGIS,MKS,AGS]
+        options: [telsuko,harsha]
       environment:
         description: Select environment
         required: true
