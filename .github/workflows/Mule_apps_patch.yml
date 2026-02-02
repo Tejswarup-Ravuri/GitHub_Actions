@@ -3,6 +3,11 @@ name: MuleSoft Application Management
 on:
   workflow_dispatch:
     inputs:
+      Business Group:
+        description: Select environment
+        required: true
+        type: choice
+        options: [AGIS,MKS,AGS]
       environment:
         description: Select environment
         required: true
