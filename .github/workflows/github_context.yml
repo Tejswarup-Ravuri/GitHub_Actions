@@ -1,0 +1,11 @@
+name: Github context meta_data
+on: workflow_dispatch
+jobs:
+  info:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Output github context meta_data
+        run: echo "${{toJson(github)}}" 
+        #github is a data object here so to make it readable i have used a function called toJson
+      
+  
