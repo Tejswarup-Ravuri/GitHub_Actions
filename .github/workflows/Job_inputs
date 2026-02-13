@@ -1,1 +1,2 @@
-
+name: Job_inputs_workflow
+on: workflow_dispatch
