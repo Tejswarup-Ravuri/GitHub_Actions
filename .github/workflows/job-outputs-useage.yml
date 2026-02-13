@@ -17,9 +17,9 @@ jobs:
    steps:
     - name : print sum
       run: |
-       var b=10;
-       var c=b+${{needs.using_outputs.outputs.pointer}}
-       echo "sum is $c"
+        b=10
+        c=b+${{needs.using_outputs.outputs.pointer}}
+        echo "sum is $c"
   
       
     
