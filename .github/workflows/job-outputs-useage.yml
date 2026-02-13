@@ -1,0 +1,25 @@
+name: job-outputs-useage
+on: workflow_dispatch
+jobs:
+  using_outputs:
+    runs-on: ubuntu-latest
+    outputs:
+      pointer: ${{steps.varaible.outputs.a}}
+    steps:
+      - name: creating a varaiable
+        id: varaible
+        run: |
+          echo "a=10" >> $GITHUB_OUTPUT
+
+  print_sum:
+   runs-on: ubuntu-latest
+   needs: using_outputs
+   steps:
+    - name : print sum
+      run: |
+       var b=10;
+       var c=b+${{needs.using_outputs.outputs.pointer}}
+       echo "sum is $c"
+  
+      
+    
