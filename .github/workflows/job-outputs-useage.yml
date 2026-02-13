@@ -18,7 +18,7 @@ jobs:
     - name : print sum
       run: |
         b=10
-        c=b+${{needs.using_outputs.outputs.pointer}}
+        c=$((b+${{needs.using_outputs.outputs.pointer}}))
         echo "sum is $c"
   
       
