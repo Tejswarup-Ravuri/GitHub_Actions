@@ -1,2 +1,14 @@
 name: Job_inputs_workflow
-on: workflow_dispatch
+on:
+  workflow_dispatch:
+    inputs:
+      Operation:
+        description: "Choose the operation to be performed"
+        type: choice
+        required: true
+        default: Addition
+        options:
+          - Addition
+          - Subtraction
+          - Multiplication
+          - Division
