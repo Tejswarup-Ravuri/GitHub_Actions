@@ -3,8 +3,8 @@ on: workflow_dispatch
 jobs:
   using_outputs:
     runs-on: ubuntu-latest
-    outputs:
-      pointer: ${{steps.varaible.outputs.a}}
+    outputs: #to access one job outputs in other job you need this outputs keyword
+      pointer: ${{steps.varaible.outputs.a}} #the outputs here is provided by Github,internally it will be here
     steps:
       - name: creating a varaiable
         id: varaible
@@ -15,10 +15,10 @@ jobs:
    runs-on: ubuntu-latest
    needs: using_outputs
    steps:
-    - name : print sum
+    - name : print sum # in bash mathematic expressions are inlcuded in $(( ))
       run: |
         b=10
-        c=$((b+${{needs.using_outputs.outputs.pointer}}))
+        c=$((b+${{needs.using_outputs.outputs.pointer}})) 
         echo "sum is $c"
   
       
