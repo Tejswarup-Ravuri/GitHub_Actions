@@ -18,7 +18,7 @@ jobs:
        if: ${{ github.event.inputs.operation == 'Addition' }}
        runs-on: ubuntu-latest
        outputs:
-         result: ${{steps.output.add}}
+         result: ${{steps.add.outputs.result}}
        steps:
         - name: Addition
           id: add
@@ -26,6 +26,7 @@ jobs:
                a=10
                b=5
                c=$((a+b))
+               echo "result=$c" >> "$GITHUB_OUTPUT"
                
     Final_Operation:
       needs: Addition
