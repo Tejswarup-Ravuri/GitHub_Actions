@@ -14,6 +14,7 @@ on:
           - Division
             
 jobs:
+#if else on step level
     Addition:
        if: ${{ github.event.inputs.operation == 'Addition' }}
        runs-on: ubuntu-latest
