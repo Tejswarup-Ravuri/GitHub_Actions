@@ -12,3 +12,27 @@ on:
           - Subtraction
           - Multiplication
           - Division
+            
+jobs:
+    Addition:
+       if: ${{ github.event.inputs.operation == 'Addition' }}
+       runs-on: ubuntu-latest
+       outputs:
+         result: ${{steps.output.add}}
+       steps:
+        - name: Addition
+          id: add
+          run: |
+               a=10
+               b=5
+               c=$((a+b))
+               
+    Final_Operation:
+      needs: Addition
+      runs-on: ubuntu-latest
+      steps:
+       - name: Addition of 3 to final result
+         run: echo "Final answer is $((${{needs.Addition.outputs.result}}+3))"
+               
+          
+      
