@@ -1,0 +1,4 @@
+workflow_details
+on:
+  workflow_dispatch
+  
